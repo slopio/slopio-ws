@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+      # The TLS tests skip themselves without kTLS; registered buffer rings
+      # pin pages against RLIMIT_MEMLOCK.
+      - name: Test
+        run: |
+          sudo modprobe tls
+          sudo prlimit --pid $$ --memlock=unlimited:unlimited
+          cargo test --locked --no-fail-fast
+
+  # The Autobahn conformance suite, both ways: Autobahn as client against
+  # examples/echo_server, and examples/autobahn_client against Autobahn's
+  # server. summary.py fails the job on any FAILED case.
+  autobahn:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [server, client]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Pulled up front, so the pull does not eat into run.sh's startup waits.
+      - name: Pull the Autobahn image
+        run: docker pull docker.io/crossbario/autobahn-testsuite
+      - name: Autobahn (${{ matrix.mode }})
+        run: |
+          sudo prlimit --pid $$ --memlock=unlimited:unlimited
+          autobahn/run.sh ${{ matrix.mode }}
+      - name: Upload the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: autobahn-${{ matrix.mode }}
+          path: autobahn/reports/${{ matrix.mode }}/
+          if-no-files-found: ignore

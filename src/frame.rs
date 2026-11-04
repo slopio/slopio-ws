@@ -121,14 +121,11 @@ pub fn apply_mask(buf: &mut [u8], mask: [u8; 4], offset: usize) {
     let key: [u8; 4] = std::array::from_fn(|i| mask[(i + offset) % 4]);
     // Memory order in, memory order out: the XOR is endian-agnostic.
     let word = u64::from_ne_bytes(std::array::from_fn(|i| key[i % 4]));
-    let mut chunks = buf.chunks_exact_mut(8);
-    for chunk in &mut chunks {
-        let v = u64::from_ne_bytes(chunk.try_into().unwrap()) ^ word;
-        chunk.copy_from_slice(&v.to_ne_bytes());
+    let (chunks, rest) = buf.as_chunks_mut::<8>();
+    for chunk in chunks {
+        *chunk = (u64::from_ne_bytes(*chunk) ^ word).to_ne_bytes();
     }
-    chunks
-        .into_remainder()
-        .iter_mut()
+    rest.iter_mut()
         .zip(key.iter().cycle())
         .for_each(|(b, k)| *b ^= k);
 }
