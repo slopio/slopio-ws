@@ -1,8 +1,8 @@
 use std::net::SocketAddr;
 
-use popple_tls::{ClientConfig, ServerName};
-use runtime::net::{BufRingSpec, connect_tcp};
 use rustls::client::ClientConnectionData;
+use slopio::net::{BufRingSpec, connect_tcp};
+use slopio_tls::{ClientConfig, ServerName};
 
 use crate::handshake::{self, HandshakeError, Head};
 use crate::socket::{Config, WebSocket};
@@ -34,7 +34,7 @@ pub async fn connect_tls<R: BufRingSpec>(
         ServerName::DnsName(name) => name.as_ref().to_owned(),
         _ => addr.ip().to_string(),
     };
-    let ktls = popple_tls::connect(addr, server_name, tls, config.handshake_timeout).await?;
+    let ktls = slopio_tls::connect(addr, server_name, tls, config.handshake_timeout).await?;
     let transport = Tls::new(ktls.into_messages::<R>());
     handshake::client(transport, &host, path, &[], config).await
 }

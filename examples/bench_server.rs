@@ -6,15 +6,15 @@
 
 use std::time::Duration;
 
-use popple_tls::{ServerSettings, server_config};
 use popple_ws::{Config, Message, Transport, Upgrade, WebSocket};
 use rcgen::{CertificateParams, KeyPair};
-use runtime::net::MultiAccept;
-use runtime::spawn;
-use runtime_streams::StreamExt;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+use slopio::net::MultiAccept;
+use slopio::spawn;
+use slopio::streams::StreamExt;
+use slopio_tls::{ServerSettings, server_config};
 
-runtime::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 4096);
+slopio::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 4096);
 
 /// Load tests send what they like, and keep connections open as long as
 /// they like: no limit should get in the way of the measure.
@@ -79,7 +79,7 @@ fn main() {
         if tls.is_some() { "wss" } else { "ws" }
     );
 
-    runtime::thread_per_core_with::<Ring, _>(move |_worker| {
+    slopio::thread_per_core_with::<Ring, _>(move |_worker| {
         let tls = tls.clone();
         Box::pin(async move {
             let addr = ([127, 0, 0, 1], port).into();
@@ -94,7 +94,7 @@ fn main() {
                         let cfg = cfg.clone();
                         spawn(async move {
                             let deadline = Duration::from_secs(30);
-                            if let Ok(ktls) = popple_tls::handshake(socket, cfg, deadline).await {
+                            if let Ok(ktls) = slopio_tls::handshake(socket, cfg, deadline).await {
                                 echo(popple_ws::Tls::new(ktls.into_messages::<Ring>())).await;
                             }
                         });

@@ -5,12 +5,12 @@ use std::pin::{Pin, pin};
 use std::rc::Rc;
 use std::time::Duration;
 
-use runtime::channels::{
+use slopio::channels::{
     BoundedReceiver, BoundedSender, Receiver, Sender, bounded_channel, unbounded_channel,
 };
-use runtime::runtime::select::{SelectResult5, select5};
-use runtime::runtime::time::Sleep;
-use runtime::spawn;
+use slopio::runtime::select::{SelectResult5, select5};
+use slopio::runtime::time::Sleep;
+use slopio::spawn;
 
 use crate::control::ControlBuf;
 use crate::message::{CloseFrame, Message};

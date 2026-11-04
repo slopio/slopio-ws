@@ -6,14 +6,14 @@ use std::io;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use popple_tls::{Frame as TlsFrame, KtlsMessages, KtlsReader, KtlsWriter};
-use runtime::io_driver::DEFAULT_QUEUE_SIZE;
-use runtime::io_driver::operations::sockets::multi_recv::{CompletionError, Continuation};
-use runtime::net::{
+use slopio::io_driver::DEFAULT_QUEUE_SIZE;
+use slopio::io_driver::operations::sockets::multi_recv::{CompletionError, Continuation};
+use slopio::net::{
     BorrowedBuffer, BufRingSpec, IoBuf, MultiRecv, OwnedReadHalf, OwnedWriteHalf, SocketWrapper,
     send_all, send_vectored_all,
 };
-use runtime_streams::Stream;
+use slopio::streams::Stream;
+use slopio_tls::{Frame as TlsFrame, KtlsMessages, KtlsReader, KtlsWriter};
 
 /// A connected, reliable byte stream, split into halves that can be driven
 /// at the same time: reading goes on while a write is in flight.

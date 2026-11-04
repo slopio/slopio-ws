@@ -2,22 +2,22 @@ use std::io;
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 
-use popple_tls::{
-    ServerName, ServerSettings, client_config_dangerous_no_verification, server_config,
-};
 use popple_ws::{
     CloseFrame, Config, HandshakeError, Message, Plain, SendError, Shutdown, Tls, Transport,
     TransportRead, TransportWrite, Upgrade, WebSocket, connect, connect_tls,
 };
 use rcgen::{CertificateParams, KeyPair};
-use runtime::net::{BufRingSpec, MultiAccept};
-use runtime::runtime::time::{Sleep, timeout};
-use runtime::spawn;
-use runtime_streams::StreamExt;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+use slopio::net::{BufRingSpec, MultiAccept};
+use slopio::runtime::time::{Sleep, timeout};
+use slopio::spawn;
+use slopio::streams::StreamExt;
+use slopio_tls::{
+    ServerName, ServerSettings, client_config_dangerous_no_verification, server_config,
+};
 
 // Small buffers, so large messages span many recv completions.
-runtime::define_buf_ring!(Ring, bgid = 1, buffer_size = 4096, ring_size = 256);
+slopio::define_buf_ring!(Ring, bgid = 1, buffer_size = 4096, ring_size = 256);
 
 /// Echo data messages back through the split halves until the peer closes.
 async fn echo<T: Transport + 'static>(ws: WebSocket<T>) {
@@ -68,7 +68,7 @@ fn listener() -> (MultiAccept, SocketAddr) {
 
 #[test]
 fn plain_echo() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -89,7 +89,7 @@ fn plain_echo() {
 
 #[test]
 fn tls_echo() {
-    if !popple_tls::ktls_available() {
+    if !slopio_tls::ktls_available() {
         eprintln!("kTLS unavailable (modprobe tls); skipping");
         return;
     }
@@ -103,11 +103,11 @@ fn tls_echo() {
     .unwrap();
     let client_tls = client_config_dangerous_no_verification(None).unwrap();
 
-    runtime::main_thread_with::<Ring, _>(async move {
+    slopio::main_thread_with::<Ring, _>(async move {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
-            let ktls = popple_tls::handshake(socket, server_tls, Duration::from_secs(5))
+            let ktls = slopio_tls::handshake(socket, server_tls, Duration::from_secs(5))
                 .await
                 .unwrap();
             let transport = Tls::new(ktls.into_messages::<Ring>());
@@ -126,7 +126,7 @@ fn tls_echo() {
 
 #[test]
 fn rejects_plain_http() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -137,7 +137,7 @@ fn rejects_plain_http() {
             );
         });
 
-        let socket = runtime::net::connect_tcp(addr).await.unwrap();
+        let socket = slopio::net::connect_tcp(addr).await.unwrap();
         let (mut client_rx, mut client) = Plain::<Ring>::new(socket).into_split();
         client
             .send(&b"GET / HTTP/1.1\r\nHost: x\r\n\r\n"[..])
@@ -157,7 +157,7 @@ fn rejects_plain_http() {
 /// single deadline over the whole upgrade must still cut it off.
 #[test]
 fn upgrade_deadline_stops_slowloris() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -171,7 +171,7 @@ fn upgrade_deadline_stops_slowloris() {
             started.elapsed()
         });
 
-        let socket = runtime::net::connect_tcp(addr).await.unwrap();
+        let socket = slopio::net::connect_tcp(addr).await.unwrap();
         let (_client_rx, mut client) = Plain::<Ring>::new(socket).into_split();
         // Stops on its own once the server has dropped the connection.
         for byte in b"GET / HTTP/1.1\r\nHost: x\r\nX-Pad: "
@@ -195,7 +195,7 @@ fn upgrade_deadline_stops_slowloris() {
 /// The server refuses a frame over its limit and tells the client why.
 #[test]
 fn oversized_frame_is_closed_with_1009() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -230,7 +230,7 @@ fn oversized_frame_is_closed_with_1009() {
 /// before the first message is handed out, not held until the last one.
 #[test]
 fn ring_buffer_released_before_message_is_returned() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             // A bare server, to control exactly how bytes hit the wire.
@@ -316,7 +316,7 @@ fn quiet(idle: Duration, ping: Option<Duration>) -> Config {
 /// A silent peer is dropped after `idle_timeout`, and told why (1001).
 #[test]
 fn silent_peer_times_out() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -349,7 +349,7 @@ fn silent_peer_times_out() {
 /// With `split`, a quiet but live peer is pinged and kept past `idle_timeout`.
 #[test]
 fn keepalive_pings_hold_a_quiet_peer() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -397,7 +397,7 @@ fn keepalive_pings_hold_a_quiet_peer() {
 /// A peer that never answers our close frame is dropped after `close_timeout`.
 #[test]
 fn unanswered_close_times_out() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             // Upgrades, then never reads: our close frame gets no answer.
@@ -428,7 +428,7 @@ fn unanswered_close_times_out() {
 /// `split` refuses to queue past `max_outbound_bytes`.
 #[test]
 fn outbound_budget_is_enforced() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -469,7 +469,7 @@ fn outbound_budget_is_enforced() {
 /// A server may only name a subprotocol the client offered.
 #[test]
 fn subprotocol_must_be_offered() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -493,7 +493,7 @@ fn subprotocol_must_be_offered() {
 /// The client refuses a server enabling an extension it never offered.
 #[test]
 fn client_refuses_unoffered_extension() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let _transport = bare_upgrade(
@@ -532,7 +532,7 @@ async fn serve_watched(accept: &mut MultiAccept, shutdown: Shutdown, config: Con
 /// worker is drained as soon as the peer answers.
 #[test]
 fn shutdown_closes_with_1001_and_drains() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let shutdown = Shutdown::new();
         let server = spawn({
@@ -572,7 +572,7 @@ fn shutdown_closes_with_1001_and_drains() {
 /// `close_timeout`.
 #[test]
 fn shutdown_does_not_wait_past_close_timeout() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let shutdown = Shutdown::new();
         let config = Config {
@@ -643,7 +643,7 @@ async fn jam_then_talk<T: Transport>(mut ws: WebSocket<T>) -> WebSocket<T> {
 
 #[test]
 fn reads_go_on_while_a_write_is_stuck() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -660,7 +660,7 @@ fn reads_go_on_while_a_write_is_stuck() {
 
 #[test]
 fn tls_reads_go_on_while_a_write_is_stuck() {
-    if !popple_tls::ktls_available() {
+    if !slopio_tls::ktls_available() {
         eprintln!("kTLS unavailable (modprobe tls); skipping");
         return;
     }
@@ -673,12 +673,12 @@ fn tls_reads_go_on_while_a_write_is_stuck() {
     })
     .unwrap();
     let client_tls = client_config_dangerous_no_verification(None).unwrap();
-    runtime::main_thread_with::<Ring, _>(async move {
+    slopio::main_thread_with::<Ring, _>(async move {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
             let deadline = Duration::from_secs(5);
-            let ktls = popple_tls::handshake(socket, server_tls, deadline)
+            let ktls = slopio_tls::handshake(socket, server_tls, deadline)
                 .await
                 .unwrap();
             let transport = Tls::new(ktls.into_messages::<Ring>());
@@ -698,7 +698,7 @@ fn tls_reads_go_on_while_a_write_is_stuck() {
 /// `write_timeout`.
 #[test]
 fn a_peer_that_does_not_read_times_out() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let (mut accept, addr) = listener();
         let server = spawn(async move {
             let socket = accept.next().await.unwrap().unwrap();
@@ -740,7 +740,7 @@ fn out_of_range_timeout_is_an_error_not_a_panic() {
         ..Config::default()
     };
     assert!(config.validate().is_err());
-    runtime::main_thread_with::<Ring, _>(async move {
+    slopio::main_thread_with::<Ring, _>(async move {
         let (_accept, addr) = listener();
         let result = connect::<Ring>(addr, "localhost", "/", config).await;
         assert!(matches!(result, Err(HandshakeError::Config(_))));

@@ -5,7 +5,7 @@
 use std::io;
 use std::time::Duration;
 
-use runtime::runtime::time::{Sleep, timeout};
+use slopio::runtime::time::{Sleep, timeout};
 
 use crate::socket::{Config, InvalidConfig, Role, WebSocket};
 use crate::transport::{Transport, TransportRead, TransportWrite};
@@ -18,7 +18,7 @@ const MAX_HEAD: usize = 16 << 10;
 #[derive(Debug)]
 pub enum HandshakeError {
     Io(io::Error),
-    Tls(popple_tls::HandshakeError),
+    Tls(slopio_tls::HandshakeError),
     /// The peer's head is not a valid WebSocket upgrade.
     Invalid(&'static str),
     /// The server answered with a status other than 101.
@@ -67,8 +67,8 @@ impl From<io::Error> for HandshakeError {
     }
 }
 
-impl From<popple_tls::HandshakeError> for HandshakeError {
-    fn from(e: popple_tls::HandshakeError) -> Self {
+impl From<slopio_tls::HandshakeError> for HandshakeError {
+    fn from(e: slopio_tls::HandshakeError) -> Self {
         Self::Tls(e)
     }
 }

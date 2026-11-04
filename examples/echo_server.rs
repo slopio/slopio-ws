@@ -9,15 +9,15 @@
 
 use std::time::Duration;
 
-use popple_tls::{ServerSettings, server_config};
 use popple_ws::{Config, Message, Plain, Shutdown, Tls, Transport, Upgrade};
 use rcgen::{CertificateParams, KeyPair};
-use runtime::net::MultiAccept;
-use runtime::spawn;
-use runtime_streams::StreamExt;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+use slopio::net::MultiAccept;
+use slopio::spawn;
+use slopio::streams::StreamExt;
+use slopio_tls::{ServerSettings, server_config};
 
-runtime::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 1024);
+slopio::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 1024);
 
 async fn serve<T: Transport + 'static>(transport: T, shutdown: &Shutdown) {
     // Autobahn's 9.* cases send up to 16 MiB: above the defaults, sized for
@@ -69,7 +69,7 @@ fn main() {
         if tls.is_some() { "wss" } else { "ws" }
     );
 
-    runtime::thread_per_core_with::<Ring, _>(move |worker| {
+    slopio::thread_per_core_with::<Ring, _>(move |worker| {
         let tls = tls.clone();
         Box::pin(async move {
             let shutdown = Shutdown::new();
@@ -94,7 +94,7 @@ fn main() {
                     Some(cfg) => {
                         let cfg = cfg.clone();
                         spawn(async move {
-                            match popple_tls::handshake(socket, cfg, Duration::from_secs(5)).await {
+                            match slopio_tls::handshake(socket, cfg, Duration::from_secs(5)).await {
                                 Ok(ktls) => {
                                     let transport = Tls::new(ktls.into_messages::<Ring>());
                                     serve(transport, &shutdown).await;

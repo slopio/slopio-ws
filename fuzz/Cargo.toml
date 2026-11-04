@@ -11,8 +11,7 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 arbitrary = { version = "1", features = ["derive"] }
 popple-ws = { path = ".." }
-runtime = { git = "ssh://git@github.com/saucisoupe/runtime.git" }
-runtime-streams = { git = "ssh://git@github.com/saucisoupe/runtime.git" }
+slopio = "0.1"
 
 [[bin]]
 name = "frame_decoder"

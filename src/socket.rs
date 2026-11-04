@@ -5,9 +5,9 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::{Duration, SystemTime};
 
-use runtime::runtime::time::Sleep;
+use slopio::runtime::time::Sleep;
 
-use runtime_streams::Stream;
+use slopio::streams::Stream;
 
 use crate::control::ControlBuf;
 use crate::frame::{Decoder, MAX_CONTROL_PAYLOAD, MAX_HEADER_LEN, OpCode, ProtocolError};
@@ -867,7 +867,7 @@ fn random_mask() -> [u8; 4] {
 
 /// The runtime's clock: a thread-local read, cached once per loop turn.
 fn now() -> SystemTime {
-    runtime::runtime::now()
+    slopio::runtime::now()
 }
 
 fn elapsed_since(at: SystemTime) -> Duration {
@@ -879,8 +879,8 @@ mod tests {
     use std::pin::pin;
     use std::task::Waker;
 
-    use runtime::net::IoBuf;
-    use runtime_streams::StreamExt;
+    use slopio::net::IoBuf;
+    use slopio::streams::StreamExt;
 
     use super::*;
 

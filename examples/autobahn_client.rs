@@ -7,10 +7,10 @@ use std::net::SocketAddr;
 use std::time::Duration;
 
 use popple_ws::{Config, Message, Plain, WebSocket, connect};
-use runtime::runtime::time::Sleep;
-use runtime_streams::StreamExt;
+use slopio::runtime::time::Sleep;
+use slopio::streams::StreamExt;
 
-runtime::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 1024);
+slopio::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 1024);
 
 const AGENT: &str = "popple-ws";
 const HOST: &str = "127.0.0.1:9002";
@@ -58,7 +58,7 @@ async fn echo(mut ws: WebSocket<Plain<Ring>>) {
 }
 
 fn main() {
-    runtime::main_thread_with::<Ring, _>(async {
+    slopio::main_thread_with::<Ring, _>(async {
         let mut ws = open("/getCaseCount").await.expect("fuzzing server on 9002");
         let count: u32 = match ws.next().await {
             Some(Ok(Message::Text(n))) => n.parse().expect("case count"),

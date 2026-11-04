@@ -14,12 +14,12 @@
 use std::net::{SocketAddr, ToSocketAddrs};
 use std::time::{Duration, Instant};
 
-use popple_tls::{ClientSettings, ServerName, client_config};
 use popple_ws::{CloseFrame, Config, Message, Transport, WebSocket, connect, connect_tls};
-use runtime::runtime::time::timeout;
-use runtime_streams::StreamExt;
+use slopio::runtime::time::timeout;
+use slopio::streams::StreamExt;
+use slopio_tls::{ClientSettings, ServerName, client_config};
 
-runtime::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 256);
+slopio::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 256);
 
 struct Url {
     tls: bool,
@@ -163,10 +163,10 @@ fn main() {
         url.path
     );
 
-    let ok = runtime::main_thread_with::<Ring, _>(async move {
+    let ok = slopio::main_thread_with::<Ring, _>(async move {
         let started = Instant::now();
         if url.tls {
-            if !popple_tls::ktls_available() {
+            if !slopio_tls::ktls_available() {
                 eprintln!("kTLS is not available here: sudo modprobe tls");
                 return false;
             }

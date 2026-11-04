@@ -12,7 +12,7 @@
 //! ```
 //!
 //! With TLS, build the transport from the handshaken socket instead:
-//! `Tls::new(popple_tls::handshake(socket, cfg, deadline).await?.into_messages::<Ring>())`.
+//! `Tls::new(slopio_tls::handshake(socket, cfg, deadline).await?.into_messages::<Ring>())`.
 //!
 //! Then either drive the [`WebSocket`] from one task, `select`ing
 //! `ws.next()` against your own events, or [`split`](WebSocket::split) it

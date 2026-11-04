@@ -150,6 +150,6 @@ trait NextMessage {
 
 impl<T: popple_ws::Transport> NextMessage for WebSocket<T> {
     fn next_message(&mut self) -> impl Future<Output = Option<std::io::Result<Message>>> {
-        runtime_streams::StreamExt::next(self)
+        slopio::streams::StreamExt::next(self)
     }
 }

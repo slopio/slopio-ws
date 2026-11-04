@@ -15,12 +15,12 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use popple_tls::{ServerName, client_config_dangerous_no_verification};
 use popple_ws::{Config, Message, Transport, WebSocket, connect, connect_tls};
-use runtime::spawn;
-use runtime_streams::StreamExt;
+use slopio::spawn;
+use slopio::streams::StreamExt;
+use slopio_tls::{ServerName, client_config_dangerous_no_verification};
 
-runtime::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 4096);
+slopio::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 4096);
 
 const CONFIG: Config = Config {
     max_frame_size: 16 << 20,
@@ -256,7 +256,7 @@ fn main() {
     let results: Arc<Mutex<Vec<Stats>>> = Arc::default();
     let shared = (args.clone(), results.clone());
 
-    runtime::thread_per_core_with::<Ring, _>(move |worker| {
+    slopio::thread_per_core_with::<Ring, _>(move |worker| {
         let (args, results) = shared.clone();
         Box::pin(async move {
             // Connections are dealt round-robin over the workers.

@@ -12,11 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async_timers"
-version = "0.1.0"
-source = "git+ssh://git@github.com/saucisoupe/runtime.git#a99707818f7c960b74be57586ba0faf4d4b805e9"
-
-[[package]]
 name = "aws-lc-rs"
 version = "1.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -114,7 +109,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -160,15 +155,6 @@ dependencies = [
  "bitflags",
  "cfg-if",
  "libc",
-]
-
-[[package]]
-name = "io_uring_rb"
-version = "0.1.0"
-source = "git+ssh://git@github.com/saucisoupe/runtime.git#a99707818f7c960b74be57586ba0faf4d4b805e9"
-dependencies = [
- "io-uring",
- "rustix",
 ]
 
 [[package]]
@@ -220,15 +206,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
-name = "mimalloc"
-version = "0.1.48"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1ee66a4b64c74f4ef288bcbb9192ad9c3feaad75193129ac8509af543894fd8"
-dependencies = [
- "libmimalloc-sys",
-]
-
-[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -261,26 +238,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
-name = "popple-tls"
-version = "0.1.0"
-source = "git+ssh://git@github.com/saucisoupe/popple-tls.git#d042b87af0e97cbc4436216fe8e809be612e5b31"
-dependencies = [
- "libc",
- "runtime",
- "runtime-streams",
- "rustls",
- "zeroize",
-]
-
-[[package]]
 name = "popple-ws"
 version = "0.1.0"
 dependencies = [
  "aws-lc-rs",
- "popple-tls",
- "runtime",
- "runtime-streams",
  "rustls",
+ "slopio",
+ "slopio-tls",
 ]
 
 [[package]]
@@ -290,8 +254,7 @@ dependencies = [
  "arbitrary",
  "libfuzzer-sys",
  "popple-ws",
- "runtime",
- "runtime-streams",
+ "slopio",
 ]
 
 [[package]]
@@ -372,40 +335,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "runtime"
-version = "0.1.0"
-source = "git+ssh://git@github.com/saucisoupe/runtime.git#a99707818f7c960b74be57586ba0faf4d4b805e9"
-dependencies = [
- "libc",
- "mimalloc",
- "runtime-core",
-]
-
-[[package]]
-name = "runtime-core"
-version = "0.1.0"
-source = "git+ssh://git@github.com/saucisoupe/runtime.git#a99707818f7c960b74be57586ba0faf4d4b805e9"
-dependencies = [
- "async_timers",
- "bitfield-struct",
- "bumpalo",
- "io-uring",
- "io_uring_rb",
- "libc",
- "pin-project",
- "rand",
- "runtime-streams",
- "slab",
- "smallvec",
- "socket2",
-]
-
-[[package]]
-name = "runtime-streams"
-version = "0.1.0"
-source = "git+ssh://git@github.com/saucisoupe/runtime.git#a99707818f7c960b74be57586ba0faf4d4b805e9"
-
-[[package]]
 name = "rustix"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -415,7 +344,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -465,6 +394,37 @@ name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
+
+[[package]]
+name = "slopio"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11e7b942e83aa37165cb6d076a0c0992a674bb0164fadf03865c8598f30d415c"
+dependencies = [
+ "bitfield-struct",
+ "bumpalo",
+ "io-uring",
+ "libc",
+ "libmimalloc-sys",
+ "pin-project",
+ "rand",
+ "rustix",
+ "slab",
+ "smallvec",
+ "socket2",
+]
+
+[[package]]
+name = "slopio-tls"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e77f32b76d9d082a75b0321ac697d40f8b249268822d4706952da5aab53b5a34"
+dependencies = [
+ "libc",
+ "rustls",
+ "slopio",
+ "zeroize",
+]
 
 [[package]]
 name = "smallvec"

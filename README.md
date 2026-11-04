@@ -1,9 +1,9 @@
 # popple-ws
 
 WebSocket ([RFC 6455](https://www.rfc-editor.org/rfc/rfc6455)) for the
-[`runtime`](https://github.com/saucisoupe/runtime) io_uring runtime, over plain
+[`slopio`](https://crates.io/crates/slopio) io_uring runtime, over plain
 TCP or TLS offloaded to the kernel by
-[`popple-tls`](https://github.com/saucisoupe/popple-tls).
+[`slopio-tls`](https://crates.io/crates/slopio-tls).
 
 - **Multishot receive.** Frames are decoded straight out of the kernel's
   provided-buffer ring; each ring buffer goes back to the kernel as soon as it
@@ -25,15 +25,15 @@ TCP or TLS offloaded to the kernel by
 
 ```rust
 use popple_ws::{Config, Message, Plain, Upgrade};
-use runtime::net::MultiAccept;
-use runtime_streams::StreamExt;
+use slopio::net::MultiAccept;
+use slopio::streams::StreamExt;
 
-runtime::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 1024);
+slopio::define_buf_ring!(Ring, bgid = 1, buffer_size = 16384, ring_size = 1024);
 
-runtime::main_thread_with::<Ring, _>(async {
+slopio::main_thread_with::<Ring, _>(async {
     let mut accept = MultiAccept::new(9001).unwrap();
     while let Some(Ok(socket)) = accept.next().await {
-        runtime::spawn(async move {
+        slopio::spawn(async move {
             let upgrade = Upgrade::read(Plain::<Ring>::new(socket), Config::default()).await?;
             // Path, headers, Origin, cookies: check them here, or `upgrade.reject(401, ..)`.
             let mut ws = upgrade.accept().await?;
@@ -56,7 +56,7 @@ runtime::main_thread_with::<Ring, _>(async {
 For TLS, build the transport from the handshaken socket instead:
 
 ```rust
-let ktls = popple_tls::handshake(socket, tls_config, Duration::from_secs(5)).await?;
+let ktls = slopio_tls::handshake(socket, tls_config, Duration::from_secs(5)).await?;
 let upgrade = Upgrade::read(Tls::new(ktls.into_messages::<Ring>()), Config::default()).await?;
 ```
 
@@ -167,4 +167,4 @@ goes out.
 
 Experimental, like the runtime it builds on: Linux only, kernel 6.1 or later,
 and `modprobe tls` for kTLS. Not supported yet: permessage-deflate, and a
-configurable receive queue for TLS connections (fixed by popple-tls).
+configurable receive queue for TLS connections (fixed by slopio-tls).

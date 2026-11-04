@@ -13,7 +13,7 @@ use std::task::{Context, Poll, Waker};
 use popple_ws::{Transport, TransportRead, TransportWrite};
 use popple_ws::frame::{Decoder, ProtocolError};
 use popple_ws::Message;
-use runtime::net::IoBuf;
+use slopio::net::IoBuf;
 
 /// Delivers `incoming` chunk by chunk then ends; records every write in
 /// `written`, which the caller keeps a handle on.
