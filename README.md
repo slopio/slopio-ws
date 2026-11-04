@@ -5,11 +5,8 @@ WebSocket ([RFC 6455](https://www.rfc-editor.org/rfc/rfc6455)) for the
 TCP or TLS offloaded to the kernel by
 [`slopio-tls`](https://crates.io/crates/slopio-tls).
 
-- **Multishot receive.** Frames are decoded straight out of the kernel's
-  provided-buffer ring; each ring buffer goes back to the kernel as soon as it
-  is decoded, before any message is handed out.
-- **One copy per byte.** Each payload byte is copied once, from the ring into
-  its message, and unmasked in place.
+- **One copy per byte.** Each payload byte is copied once, from the kernel's
+  buffer into its message, and unmasked in place.
 - **Batched writes.** `feed` queues frames, small ones packed together and
   large ones uncopied; `flush` writes them all in one operation, and with
   kTLS in as few records.
@@ -87,34 +84,6 @@ leave in one write. It also pings a quiet peer every `ping_interval`, so live co
 stay under `idle_timeout`. Driving the socket yourself, send your own pings
 (`ws.idle_for()` tells how long it has been quiet), and call `flush` after
 reading: pongs and the close reply only go out then.
-
-## Graceful shutdown
-
-Under `thread_per_core`, SIGTERM and SIGINT end every `MultiAccept` stream
-polled from a worker's root future. A `Shutdown` per worker then closes the
-live connections with 1001 and waits for them:
-
-```rust
-let shutdown = Shutdown::new();
-while let Some(Ok(socket)) = accept.next().await {   // None on SIGTERM
-    let shutdown = shutdown.clone();
-    let alive = shutdown.track();                    // counted from the accept
-    spawn(async move {
-        let mut ws = /* upgrade */;
-        ws.watch(&shutdown);                          // split() closes it with 1001
-        let (tx, rx) = ws.split(32);
-        /* ... */
-        drop(alive);
-    });
-}
-drop(accept);               // refuse new clients instead of queueing them
-shutdown.trigger();
-shutdown.drained().await;   // each connection bounded by close_timeout
-```
-
-Driving a socket by hand, `select` on `shutdown.triggered()` and call
-`ws.close(..)`. The runtime exits the process 30 s after the signal whatever
-is left, so keep `close_timeout` and `handshake_timeout` well below that.
 
 ## Configuration
 
